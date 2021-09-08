@@ -1,0 +1,1 @@
+class Station(val flavor:Int,val capacity:Int)
