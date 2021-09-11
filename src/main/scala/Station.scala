@@ -1,1 +1,1 @@
-class Station(val flavor:Int,val capacity:Int)
+case class Station(val id:Int,val flavor:Int,val capacity:Int)
