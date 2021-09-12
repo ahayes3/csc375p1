@@ -12,22 +12,30 @@ object Affinities {
 
   def getTotal(factory:Factory):Double = { //affinity from station s to its input
     val remaining = new mutable.HashMap[Station,Boolean]
-    val stations = factory.floor.flatten.filterNot(p => p==null).toList//.foreach(p => capRemaining.addOne(p,p.capacity))
+    val stations = factory.floor.flatten.filter(_.nonEmpty).map(_.get).toList//.foreach(p => capRemaining.addOne(p,p.capacity))
     stations.foreach(remaining.addOne(_,true))
     (for(i <- stations) yield {
       val input = closestThing(i,factory,remaining)
-      val dist = factory.distance(i,input)
-      val capRatio = if(i.capacity/input.capacity > 1) 1 else i.capacity/input.capacity
-      (input.capacity.toFloat*capRatio) * (1/dist)
+      if(input.isEmpty)
+        0
+      else {
+        val dist = factory.distance(i, input.get)
+        val capRatio = if (i.capacity / input.get.capacity > 1) 1 else i.capacity / input.get.capacity
+        //println(s"Dist: $dist\n")
+        (input.get.capacity.toFloat * capRatio) * (1 / dist)
+      }
     }).sum
   }
 
-  def closestThing(s:Station,factory:Factory,remaining: mutable.HashMap[Station,Boolean]):Station = {
+  def closestThing(s:Station,factory:Factory,remaining: mutable.HashMap[Station,Boolean]):Option[Station] = {
     val pos = factory.find(s)
+    if(!takesFrom.keySet.contains(s.flavor)) {
+      return None
+    }
     var fMatch = factory.flavorPositions(takesFrom(s.flavor)).to(mutable.ArrayBuffer)
-    var fStations = fMatch.map(p => factory.floor(p._1)(p._2))
+    var fStations = fMatch.map(p =>factory.floor(p._1)(p._2).get)
     if(fMatch.isEmpty || fStations.filter(remaining(_)).isEmpty)
-      throw new IndexOutOfBoundsException(s"Flavor ${takesFrom(s.flavor)} not found")
+      return None
 
     val removeIndices = new mutable.ArrayBuffer[Int]()
     for(i <- fStations.indices) {
@@ -36,9 +44,9 @@ object Affinities {
     }
     removeIndices.sorted(Ordering.Int.reverse).foreach(p => {fMatch.remove(p);fStations.remove(p)})
 
-    val closest = fMatch.reduceLeft((a,b) => if(Factory.distFormula(pos,a) < Factory.distFormula(pos,b)) a else b)
+    val closest = fMatch.reduceLeft((a,b) => if(Factory.distFormula(pos,a) < Factory.distFormula(pos,b)) a else b) //finds closest
     val st = factory.floor(closest._1)(closest._2)
-    remaining(factory.floor(closest._1)(closest._2)) = false
+    remaining(factory.floor(closest._1)(closest._2).get) = false
     st
   }
 
