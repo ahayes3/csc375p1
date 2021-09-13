@@ -17,7 +17,7 @@ class Cell(val pStart:Int, val stations:List[Station],val facX:Int,val facY:Int,
     spin() //selector does crossover
     while(!stop) {
       //crossover
-      //Todo
+      doCrossover()
 
       //mutation
       if(Random.between(0f,1f) > .25)
@@ -36,6 +36,21 @@ class Cell(val pStart:Int, val stations:List[Station],val facX:Int,val facY:Int,
   }
   private def sortByAffinity(f1:Factory,f2:Factory) = {
       Affinities.getTotal(f1) > Affinities.getTotal(f2)
+  }
+
+  def doCrossover():Unit = {
+    var toSwap = Seq[Station]()
+    val amt = crossover.stations.length/2
+    val list = crossover.stations.map(p => p.copy()).toBuffer
+    while(toSwap.length < amt) {
+      val index = Random.nextInt(list.length)
+      toSwap :+= list(index)
+      list.remove(index)
+    }
+    for(i <- toSwap) {
+      val newPos = crossover.find(i)
+      active.swap(active.find(i),newPos)
+    }
   }
 
   def mutate(): Unit = {
