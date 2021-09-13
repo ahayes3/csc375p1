@@ -1,13 +1,26 @@
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
-class Factory(val x: Int,val y:Int,val flavors: Int,stations:List[Station]) { //Chromosome for purpose of GA
+class Factory(val x: Int,val y:Int,val stations:List[Station]) { //Chromosome for purpose of GA
   val floor = Array.fill[Option[Station]](x, y)(None)
   placeRandom(stations)
 
-  def swap(x1: Int, y1: Int, x2: Int, y2: Int): Unit = { //swap mutation
-    val a = floor(x1)(y1)
-    floor(x1)(y1) = floor(x2)(y2)
-    floor(x2)(y2) = a
+  override def clone():Factory = {
+    val out = new Factory(x,y,stations.map(p => p.copy()))
+    for(i <- floor.indices) {
+      for(j <-floor(i).indices) {
+        floor(i)(j) match {
+          case Some(value) => out.floor(i)(j) = Some(value.copy())
+          case None => out.floor(i)(j) = None
+        }
+      }
+    }
+    out
+  }
+
+  def swap(p1:(Int,Int), p2:(Int,Int)): Unit = { //swap mutation
+    val a = floor(p1._1)(p1._2)
+    floor(p1._1)(p1._2) = floor(p2._1)(p2._2)
+    floor(p2._1)(p2._2) = a
   }
 
   def find(s: Station): (Int, Int) = {
@@ -60,6 +73,29 @@ class Factory(val x: Int,val y:Int,val flavors: Int,stations:List[Station]) { //
       val pos = positions(index)
       positions.remove(index)
       floor(pos._1)(pos._2) = Some(s)
+    }
+  }
+  def similarity(f:Factory): Double = {
+    stations.map((p) => {
+      val p1 = find(p)
+      val p2 = f.find(p)
+      Factory.distFormula(p1,p2)
+    }).sum
+  }
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case fact:Factory => {
+        val a = obj.asInstanceOf[Factory]
+        for (i <- floor.indices) {
+          for (j <- floor(i).indices) {
+            if (floor(i)(j) != a.floor(i)(j))
+              return false
+          }
+        }
+        true
+      }
+      case x:AnyVal => false
     }
   }
 }
