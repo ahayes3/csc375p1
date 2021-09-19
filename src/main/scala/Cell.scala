@@ -1,21 +1,24 @@
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
-class Cell(val pStart:Int, val stations:List[Station],val facX:Int,val facY:Int,val pause:AtomicBoolean) extends Runnable {
-  var stop = false
+class Cell(val pStart:Int, val stations:List[Station],val facX:Int,val facY:Int,val pause:AtomicBoolean) extends Thread {
+  var stopMe = false
   //var buff = IndexedSeq[Factory]()
   var affinity:Double = -1
   var active:Factory = _
   var crossover:Factory = _
   private val mutationChance = .25
   override def run(): Unit = {
+    println("Started thread "+this.getId)
     active = (for(i <- 0 until pStart) yield {
       new Factory(facX,facY,stations)
     }).reduce((a,b) => if(Affinities.getTotal(a) > Affinities.getTotal(b)) a else b) //generate 10 random factories and pick best
     //buff :+= active.clone()
     affinity = Affinities.getTotal(active)
     spin() //selector does crossover
-    while(!stop) {
+    while(!stopMe) {
+      //println("Entered loop")
+
       //crossover
       doCrossover()
 
@@ -49,7 +52,8 @@ class Cell(val pStart:Int, val stations:List[Station],val facX:Int,val facY:Int,
     }
     for(i <- toSwap) {
       val newPos = crossover.find(i)
-      active.swap(active.find(i),newPos)
+      val pos = active.find(i)
+        active.swap(active.find(i),newPos)
     }
   }
 

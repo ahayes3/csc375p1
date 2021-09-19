@@ -30,13 +30,25 @@ object Main {
     val threads = for(i <- 0 until nThreads) yield {
       new Cell(pStart,stations,factoryX,factoryY,statuses(i))
     }
+    threads.foreach(_.start())
 
     var iter = 0
     var converged = false
     spinUntilReady(statuses)
+
+    var best:Factory = null
     
-    
-    while(iter < 1000 && !converged) {
+    while(iter < 2000 && !converged) {
+      if(iter %100 ==0)
+        println(s"Iter: $iter")
+      //println("Iter: "+iter)
+      var currentBest = threads(0).active
+      for(i <- threads) {
+        if(Affinities.getTotal(i.active) > Affinities.getTotal(currentBest))
+          currentBest = i.active
+      }
+      if(best == null || Affinities.getTotal(currentBest) > Affinities.getTotal(best))
+        best = currentBest
       //select parents
       val p1 = threads.reduce((a,b) => if(a.affinity > b.affinity) a else b).active
       threads.foreach({p =>
@@ -46,13 +58,16 @@ object Main {
       
       spinUntilReady(statuses)
       iter += 1
-      if(threads.map(p => p.active.similarity(threads.head.active)).filter(p => p > (n*(factoryX*factoryY)*n)).isEmpty)
+      //println(best)
+      if(threads.map(p => p.active.similarity(threads.head.active)).filter(p => p < (n*(factoryX*factoryY)*n)).isEmpty)
         converged = true
     }
-    threads.foreach(_.stop =true)
-    
-    //TODO: parent selection, anything parallel
 
+    threads.foreach(_.stopMe =true)
+    threads.foreach(_.pause.set(false))
+    
+    println(best)
+    println("Total affinity: " + Affinities.getTotal(best))
     
   }
 

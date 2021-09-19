@@ -98,6 +98,17 @@ class Factory(val x: Int,val y:Int,val stations:List[Station]) { //Chromosome fo
       case x:AnyVal => false
     }
   }
+
+  override def toString: String = {
+    val a = new StringBuilder("")
+    for(i <- 0 until y) {
+      for(j <- 0 until x) {
+        a ++= s"[${if(floor(j)(i).isEmpty) " " else floor(j)(i).get.id}]"
+      }
+      a++="\n"
+    }
+    a.toString()
+  }
 }
 object Factory {
   def distFormula(a:(Int,Int),b:(Int,Int)): Double = {
