@@ -7,7 +7,7 @@ class Cell(val pStart:Int, val stations:List[Station],val facX:Int,val facY:Int,
   var affinity:Double = -1
   var active:Factory = _
   var crossover:Factory = _
-  private val mutationChance = .25
+  private val mutationChance = .01
   override def run(): Unit = {
     println("Started thread "+this.getId)
     active = (for(i <- 0 until pStart) yield {

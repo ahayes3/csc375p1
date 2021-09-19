@@ -19,6 +19,8 @@ class Factory(val x: Int,val y:Int,val stations:List[Station]) { //Chromosome fo
 
   def swap(p1:(Int,Int), p2:(Int,Int)): Unit = { //swap mutation
     val a = floor(p1._1)(p1._2)
+    if(p1._1 == -1 || p1._2 == -1 || p2._1 == -1 || p2._2 == -1)
+      throw new IndexOutOfBoundsException()
     floor(p1._1)(p1._2) = floor(p2._1)(p2._2)
     floor(p2._1)(p2._2) = a
   }
