@@ -5,8 +5,14 @@ import scala.io.Source
 import scala.util.Random
 import scala.concurrent
 
+//TODO add more populator, redo crossover and selection
 object Main {
   def main(args: Array[String]): Unit = {
+    val a = Station(1,2,3)
+    a.position = Position(6,9)
+    val b = a.copy()
+
+
     val affinityFile = "AffinityChart"
     val affinities:Array[Array[Int]] = (for(line <- Source.fromFile(affinityFile).getLines.filterNot(_.charAt(0)=='#')) yield {
       line.split(' ').map(_.toInt).toArray[Int]
@@ -38,9 +44,8 @@ object Main {
 
     var best:Factory = null
     
-    while(iter < 2000 && !converged) {
-      if(iter %100 ==0)
-        println(s"Iter: $iter")
+    while(iter < 1000 && !converged) {
+
       //println("Iter: "+iter)
       var currentBest = threads(0).active
       for(i <- threads) {
@@ -58,6 +63,9 @@ object Main {
       
       spinUntilReady(statuses)
       iter += 1
+
+      if(iter %100 ==0)
+        println(s"Iter: $iter     Best Affinity: ${Affinities.getTotal(best)}")
       //println(best)
       if(threads.map(p => p.active.similarity(threads.head.active)).filter(p => p < (n*(factoryX*factoryY)*n)).isEmpty)
         converged = true

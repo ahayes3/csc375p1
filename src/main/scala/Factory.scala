@@ -1,49 +1,58 @@
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
-class Factory(val x: Int,val y:Int,val stations:List[Station]) { //Chromosome for purpose of GA
-  val floor = Array.fill[Option[Station]](x, y)(None)
-  placeRandom(stations)
+class Factory(val x: Int,val y:Int,val floor: Array[Array[Option[Station]]],val stations:IndexedSeq[Station]) { //Chromosome for purpose of GA
 
   override def clone():Factory = {
-    val out = new Factory(x,y,stations.map(p => p.copy()))
+    val newFloor = Array.fill[Option[Station]](x,y)(None)
+    var newStations = IndexedSeq[Station]()
     for(i <- floor.indices) {
       for(j <-floor(i).indices) {
         floor(i)(j) match {
-          case Some(value) => out.floor(i)(j) = Some(value.copy())
-          case None => out.floor(i)(j) = None
+          case Some(value) => newFloor(i)(j) = Some({
+            val cpy = value.copy()
+            cpy.position = value.position.copy()
+            newStations :+= cpy
+            cpy
+          })
+          case None =>
         }
       }
     }
-    out
+    new Factory(x,y,newFloor,newStations)
   }
 
-  def swap(p1:(Int,Int), p2:(Int,Int)): Unit = { //swap mutation
-    val a = floor(p1._1)(p1._2)
-    if(p1._1 == -1 || p1._2 == -1 || p2._1 == -1 || p2._2 == -1)
+  def swap(p1:Position, p2:Position): Unit = { //swap mutation
+    val a = floor(p1.x)(p1.y)
+    val b = floor(p2.x)(p2.y)
+    if(p1.x == -1 || p1.y == -1 || p2.x == -1 || p2.y == -1)
       throw new IndexOutOfBoundsException()
-    floor(p1._1)(p1._2) = floor(p2._1)(p2._2)
-    floor(p2._1)(p2._2) = a
+    floor(p1.x)(p1.y) = floor(p2.x)(p2.y)
+    floor(p2.x)(p2.y) = a
+    if(a.nonEmpty)
+      a.get.position = Position(p2.x,p2.y)
+    if(b.nonEmpty)
+      b.get.position = Position(p1.x,p1.y)
   }
 
-  def find(s: Station): (Int, Int) = {
+  def find(s: Station): Position = {
     for (i <- floor.indices) {
       for (j <- floor(i).indices) {
         if (floor(i)(j).nonEmpty && floor(i)(j).get == s)
-          return (i, j)
+          return Position(i, j)
       }
     }
-    return (-1, -1)
+    throw new NoSuchElementException()
   }
 
   def distance(s1: Station, s2: Station): Double = {
-    val pos1 = find(s1)
-    val pos2 = find(s2)
+    val pos1 = s1.position
+    val pos2 = s2.position
 
     Factory.distFormula(pos1, pos2)
   }
 
   def closestThing(s1: Station, flavor: Int): Station = { //can't think of a fitting name
-    val pos = find(s1)
+    val pos = s1.position
     val stations = flavorPositions(flavor)
     if (stations.isEmpty)
       throw new IndexOutOfBoundsException(s"Flavor $flavor not found")
@@ -52,36 +61,22 @@ class Factory(val x: Int,val y:Int,val stations:List[Station]) { //Chromosome fo
   }
 
 
-  def flavorPositions(flavor: Int): Seq[(Int, Int)] = {
-    var positions = Seq[(Int, Int)]()
+  def flavorPositions(flavor: Int): Seq[Position] = {
+    var positions = Seq[Position]()
     for (i <- floor.indices) {
       for (j <- floor(i).indices) {
         if (floor(i)(j).nonEmpty && floor(i)(j).get.flavor == flavor)
-          positions :+= (i, j)
+          positions :+= Position(i, j)
       }
     }
     positions
   }
 
-
-  private def placeRandom(stations: List[Station]): Unit = {
-    val positions = (for(i <- 0 until x) yield {
-      (for(j <- 0 until y) yield {
-        j
-      }).map(p => (i,p))
-    }).flatten.toBuffer
-    for (s <- stations) {
-      val index = Random.between(0,positions.length)
-      val pos = positions(index)
-      positions.remove(index)
-      floor(pos._1)(pos._2) = Some(s)
-    }
-  }
   def similarity(f:Factory): Double = {
     stations.map((p) => {
-      val p1 = find(p)
+      val p1 = p.position
       val p2 = f.find(p)
-      Factory.distFormula(p1,p2)
+      Factory.distFormula(p1,Position(p2._1,p2._2))
     }).sum
   }
 
@@ -115,5 +110,27 @@ class Factory(val x: Int,val y:Int,val stations:List[Station]) { //Chromosome fo
 object Factory {
   def distFormula(a:(Int,Int),b:(Int,Int)): Double = {
     math.hypot(a._1.toDouble - b._1.toDouble,a._2.toDouble - b._2.toDouble)
+  }
+  def distFormula(a:Position,b:Position): Double = {
+    math.hypot(a.x.toDouble - b.x.toDouble,a.y.toDouble - b.y.toDouble)
+  }
+  def randomFloor(st: List[Station],x:Int,y:Int): (Array[Array[Option[Station]]],IndexedSeq[Station]) = {
+    val arr = Array.fill[Option[Station]](x,y)(None)
+    var stations = IndexedSeq[Station]()
+    val positions = (for(i <- 0 until x) yield {
+      (for(j <- 0 until y) yield {
+        j
+      }).map(p => (i,p))
+    }).flatten.toBuffer
+    for (s <- st) {
+      val index = Random.between(0,positions.length)
+      val pos = positions(index)
+      positions.remove(index)
+      val cpy = s.copy()
+      cpy.position = Position(pos._1,pos._2)
+      stations :+= cpy
+      arr(pos._1)(pos._2) = Some(cpy)
+    }
+    (arr,stations)
   }
 }

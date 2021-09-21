@@ -11,7 +11,8 @@ class Cell(val pStart:Int, val stations:List[Station],val facX:Int,val facY:Int,
   override def run(): Unit = {
     println("Started thread "+this.getId)
     active = (for(i <- 0 until pStart) yield {
-      new Factory(facX,facY,stations)
+      val a = Factory.randomFloor(stations,facX,facY)
+      new Factory(facX,facY,a._1,a._2)
     }).reduce((a,b) => if(Affinities.getTotal(a) > Affinities.getTotal(b)) a else b) //generate 10 random factories and pick best
     //buff :+= active.clone()
     affinity = Affinities.getTotal(active)
@@ -53,14 +54,14 @@ class Cell(val pStart:Int, val stations:List[Station],val facX:Int,val facY:Int,
     for(i <- toSwap) {
       val newPos = crossover.find(i)
       val pos = active.find(i)
-        active.swap(active.find(i),newPos)
+        active.swap(pos,newPos)
     }
   }
 
   def mutate(): Unit = {
     val st = active.stations(Random.nextInt(active.stations.length))
-    val pos = (Random.nextInt(active.x),Random.nextInt(active.y))
-    active.swap(active.find(st),pos)
+    val pos = Position(Random.nextInt(active.x),Random.nextInt(active.y))
+    active.swap(st.position,pos)
   }
 
   def spin(): Unit = {

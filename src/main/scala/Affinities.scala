@@ -20,9 +20,9 @@ object Affinities {
         0
       else {
         val dist = factory.distance(i, input.get)
-        val capRatio = if (i.capacity / input.get.capacity > 1) 1 else i.capacity / input.get.capacity
+        val capRatio = if (input.get.capacity / i.capacity > 1) 1 else input.get.capacity / i.capacity
         //println(s"Dist: $dist\n")
-        (input.get.capacity.toFloat * capRatio) * (1 / dist)
+        (i.capacity.toFloat * capRatio) * (1 / dist)
       }
     }).sum
   }
