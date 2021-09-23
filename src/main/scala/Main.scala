@@ -1,6 +1,7 @@
-import java.util.concurrent.Executors
+import java.util.concurrent.{Executors, Phaser}
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 import scala.util.Random
 import scala.concurrent
@@ -29,51 +30,50 @@ object Main {
     val stations = randomStations(n,flavors,capRange)
     val nThreads = 11
     val pStart = 10
+    val tPop = 10 //population in each thread
     //
 
     Affinities(affinities,factoryX,factoryY) //initializes affinity calculator
-    val statuses:Array[AtomicBoolean] = (0 until nThreads).map(_ =>new AtomicBoolean(false)).toArray
+    val ph = new Phaser()
+    ph.register()
+    //val statuses:Array[AtomicBoolean] = (0 until nThreads).map(_ =>new AtomicBoolean(false)).toArray
+    val crossOverList = new ArrayBuffer[Factory]()
     val threads = for(i <- 0 until nThreads) yield {
-      new Cell(pStart,stations,factoryX,factoryY,statuses(i))
+      new Cell(pStart,tPop,stations,factoryX,factoryY,ph)
     }
     threads.foreach(_.start())
 
     var iter = 0
     var converged = false
-    spinUntilReady(statuses)
 
+    //spinUntilReady(statuses)
     var best:Factory = null
-    
-    while(iter < 1000 && !converged) {
 
-      //println("Iter: "+iter)
-      var currentBest = threads(0).active
-      for(i <- threads) {
-        if(Affinities.getTotal(i.active) > Affinities.getTotal(currentBest))
-          currentBest = i.active
-      }
-      if(best == null || Affinities.getTotal(currentBest) > Affinities.getTotal(best))
-        best = currentBest
-      //select parents
-      val p1 = threads.reduce((a,b) => if(a.affinity > b.affinity) a else b).active
-      threads.foreach({p =>
-        p.crossover = p1
-        p.pause.set(false)
-      })
-      
-      spinUntilReady(statuses)
-      iter += 1
+    while({
+      if(ph.getPhase % 10 ==0)
+        println(s"Phase: ${ph.getPhase}     Best affinity: ${if(best==null) 0 else best.affinity}         Current best: ${threads.flatMap(_.factories).map(_.affinity).reduce((a,b) => if(a>b) a else b)}")
+      //body
 
-      if(iter %100 ==0)
-        println(s"Iter: $iter     Best Affinity: ${Affinities.getTotal(best)}")
-      //println(best)
-      if(threads.map(p => p.active.similarity(threads.head.active)).filter(p => p < (n*(factoryX*factoryY)*n)).isEmpty)
-        converged = true
-    }
+      while(ph.getArrivedParties != ph.getRegisteredParties-1) //wait until Cells are done
+        Thread.sleep(50)
+
+      val affinities = threads.flatMap(p => p.factories.map(_.affinity))
+      val avgAffinity = affinities.sum / affinities.size
+      threads.foreach(p => p.factories = p.factories.filter(i => i.affinity >= avgAffinity))
+      val co = threads.flatMap(p => p.factories)
+      threads.foreach(_.crossOver =  co)
+      best = threads.flatMap(_.factories).reduce((a,b) => if(a.affinity > b.affinity) a else b)
+      //todo check if converged every 50 phases
+
+
+      ph.arriveAndAwaitAdvance()
+      //delete bottom half, create list of possible parents and make available to cells
+      //body
+
+      ph.getPhase < 1000 && !converged //condition
+    }){}
 
     threads.foreach(_.stopMe =true)
-    threads.foreach(_.pause.set(false))
-    
     println(best)
     println("Total affinity: " + Affinities.getTotal(best))
     

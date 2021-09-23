@@ -1,7 +1,7 @@
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 class Factory(val x: Int,val y:Int,val floor: Array[Array[Option[Station]]],val stations:IndexedSeq[Station]) { //Chromosome for purpose of GA
-
+  var affinity:Double = -1
   override def clone():Factory = {
     val newFloor = Array.fill[Option[Station]](x,y)(None)
     var newStations = IndexedSeq[Station]()
