@@ -2,8 +2,9 @@ import java.util.concurrent.Phaser
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
-class Cell(val pStart:Int,val tPop:Int, val stations:List[Station],val facX:Int,val facY:Int,val ph:Phaser) extends Thread {
+class Cell(val tPop:Int, val stations:List[Station],val facX:Int,val facY:Int,val ph:Phaser) extends Thread {
   var stopMe = false
+  private val mutationChance = .01
   //var buff = IndexedSeq[Factory]()
   //var affinity:Double = -1
   var factories:IndexedSeq[Factory] = (for(i <- 0 until tPop) yield {
@@ -13,7 +14,6 @@ class Cell(val pStart:Int,val tPop:Int, val stations:List[Station],val facX:Int,
   factories.foreach(p => p.affinity = Affinities.getTotal(p))
   //var active:Factory = _
   var crossOver = IndexedSeq[Factory]() //shouldn't be a data race
-  private val mutationChance = .01
   override def run(): Unit = {
     ph.register()
     while(!stopMe) {
@@ -29,6 +29,7 @@ class Cell(val pStart:Int,val tPop:Int, val stations:List[Station],val facX:Int,
       ph.arriveAndAwaitAdvance()
     }
     println(s"Thread stopped at time: ${System.currentTimeMillis()}")
+    ph.arriveAndDeregister()
   }
   private def sortByAffinity(f1:Factory,f2:Factory) = {
       Affinities.getTotal(f1) > Affinities.getTotal(f2)

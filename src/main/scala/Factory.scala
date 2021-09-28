@@ -18,8 +18,12 @@ class Factory(val x: Int,val y:Int,val floor: Array[Array[Option[Station]]],val 
         }
       }
     }
-    new Factory(x,y,newFloor,newStations)
+    val out = new Factory(x,y,newFloor,newStations)
+    out.affinity = this.affinity
+    out
   }
+
+
 
   def swap(p1:Position, p2:Position): Unit = { //swap mutation
     val a = floor(p1.x)(p1.y)
@@ -100,7 +104,7 @@ class Factory(val x: Int,val y:Int,val floor: Array[Array[Option[Station]]],val 
     val a = new StringBuilder("")
     for(i <- 0 until y) {
       for(j <- 0 until x) {
-        a ++= s"[${if(floor(j)(i).isEmpty) " " else floor(j)(i).get.id}]"
+        a ++= s"[${if(floor(j)(i).isEmpty) " " else floor(j)(i).get.flavor}]"
       }
       a++="\n"
     }
